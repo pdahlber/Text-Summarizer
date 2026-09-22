@@ -5,9 +5,17 @@ from docx import Document
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
+#Define the maximum characters a user can input and the maximum API calls they can make.
+MAX_CHARACTERS = 100_000
+MAX_SUMMARIES = 5
+
 #If Session State doesn't already contain something called "summary", create it and initially give it the value None.
 if "summary" not in st.session_state:
     st.session_state.summary = None
+
+#If Session State doesn't already contain something called "summary_count", create it and give it an initial value of 0.
+if "summary_count" not in st.session_state:
+    st.session_state.summary_count = 0
 
 st.set_page_config(
     page_title="AI Text Summarizer",
@@ -20,15 +28,14 @@ st.markdown(
     "Paste text or upload a document to generate a concise AI-powered summary."
 )
 
+#Give the user the option to choose between Pasting Text or Uploading a Document, and switch between the 2.
 input_method = st.radio(
     "Choose an input method:",
     ["Paste Text", "Upload Document"],
     horizontal=True
 )
 
-MAX_CHARACTERS = 100_000
-
-#Allow the user to input text to summarize.
+#Allow the user to input text to summarize if they choose that option.
 if input_method == "Paste Text":
     text = st.text_area(
         "Text to summarize:",
@@ -37,7 +44,7 @@ if input_method == "Paste Text":
     )
     text_to_summarize = text
 
-#Allow the user to upload a file to summarize
+#Allow the user to upload a file to summarize if they choose that option.
 elif input_method == "Upload Document":
     uploaded_file = st.file_uploader(
         "Upload a document:",
@@ -106,14 +113,32 @@ summary_length = st.selectbox(
     ["Short (under 500 words)", "Medium (under 1000 words)", "Detailed (under 2000 words)"]
 )
 
-if st.button("Generate Summary"):
+#Create 2 columns for the "Generate Summary" button and the API usage Display Message
+button_col, usage_col = st.columns([1, 3])
+
+with button_col:
+    generate_button = st.button("Generate Summary")
+
+with usage_col:
+    st.write("")
+    st.caption(
+        f"Demo usage: {st.session_state.summary_count}/{MAX_SUMMARIES} summaries"
+    )
+
+if generate_button:
     st.session_state.summary = None
-    
+    #Display a warning if there is no text to summarize
     if not text_to_summarize.strip():
         st.warning("Please enter some text or upload a file to summarize.")
+    #Display a warning if the text length is over our defined limit.
     elif input_too_large:
         st.error(
             "The content exceeds the 100,000-character limit."
+        )
+    #Display a warning if the number of API calls has reached our defined limit.
+    elif st.session_state.summary_count >= MAX_SUMMARIES:
+        st.warning(
+            "Demo limit reached. You can generate up to 5 summaries per session."
         )
     else:
         try:
@@ -146,7 +171,9 @@ if st.button("Generate Summary"):
                 )
 
                 st.session_state.summary = response.choices[0].message.content
-        
+                st.session_state.summary_count += 1
+                st.rerun() # Re-run the script in order to add 1 to the summary counter
+
         except Exception as e:
             st.error(f"Unable to generate the summary: {e}")
 
@@ -161,3 +188,4 @@ if st.session_state.summary:
         file_name="summary.txt",
         mime="text/plain"
     )
+
