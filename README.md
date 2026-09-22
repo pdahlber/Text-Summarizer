@@ -8,7 +8,7 @@ Users can paste text directly or upload TXT, PDF, and Word documents, choose the
 
 Try the deployed application here:
 
-[Open AI Text Summarizer](text-summarizer-smylmtcxkokonvbfynncin)
+[Open AI Text Summarizer](https://text-summarizer-smylmtcxkokonvbfynncin.streamlit.app)
 
 ## Features
 
